@@ -11,7 +11,7 @@ import argparse
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-extensions = ['.css', '.js', '.jpg', '.png', '.svg', '.gif', '.html', '.txt', '.pdf', '.xml', '.json', '%20.css', '..css', '~.css', '%00.css']
+extensions = ['.css', '.js', '.jpg', '.png', '.svg', '.gif', '.html', '.txt', '.pdf', '.xml', '.json', '%20.css', '..css', '~.css', '%00.css', '%0aaaa', '$static.css', '%23static.css', '#static.css']
 DEFAULT_PATHS = ['account', 'profile', 'dashboard', 'settings', 'user', 'admin', 'private', 'my-account', 'user/profile', 'dashboard/image', 'dashboard/profile', 'account/user', 'address']
 KNOWN_PATHS = []
 
@@ -33,6 +33,7 @@ def args():
         -u, --url (str): URL to test [required].
         -f, --file (str): File of URLs.
         -H, --header (str): Add a custom HTTP Header.
+        -p, --path (str): If you know the path, Ex: -p my-account
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -50,7 +51,7 @@ def args():
         required=False,
     )
     parser.add_argument(
-        "-p", "--path", dest="known_path", help="If you know the path", required=False
+        "-p", "--path", dest="known_path", help="If you know the path, Ex: -p my-account", required=False
     )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -190,9 +191,10 @@ def wcd_base(url, s):
             np = np if np[0] != "/" else np[1:]
             url_p = f"{url}{np}"
             wcd_making(s, url_p, req_base)
-    for dp in DEFAULT_PATHS:
-        url_p = f"{url}{dp}"
-        wcd_making(s, url_p, req_base)         
+    if not known_path:
+        for dp in DEFAULT_PATHS:
+            url_p = f"{url}{dp}"
+            wcd_making(s, url_p, req_base)         
 
 def recon_modules(base_url, s):
     robots = fetch_robots_txt(base_url, s)
@@ -238,7 +240,9 @@ if __name__ == '__main__':
         parsed_url = urlparse(url)
         try:
             if not known_path:
+                print("== Recon ==")
                 recon_modules(url, s)
+            print("== WCD Check ==")
             wcd_base(url, s)
         except KeyboardInterrupt:
             print("Exiting")
