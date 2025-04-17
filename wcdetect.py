@@ -182,12 +182,14 @@ def wcd_making(s, url_p, req_base):
                 f"{url_p}?format={e}", #Ex: toto.com/profile?format=pdf
                 ]
                 for upe in url_p_e:
+                    print(upe)
                     wcd_check(upe, req_path, req_base)
 
 def wcd_base(url, s):
     req_base = s.get(url, verify=False, allow_redirects=False, timeout=10)
     if KNOWN_PATHS:
         for np in KNOWN_PATHS:
+            print(np)
             np = np if np[0] != "/" else np[1:]
             url_p = f"{url}{np}"
             wcd_making(s, url_p, req_base)
@@ -234,7 +236,7 @@ if __name__ == '__main__':
         custom_headers = parse_headers(custom_headers)
         s.headers.update(custom_headers)
     if known_path:
-        KNOWN_PATHS = known_path
+        KNOWN_PATHS.append(known_path)
 
     if not url_file:
         parsed_url = urlparse(url)
