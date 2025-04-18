@@ -203,7 +203,7 @@ def wcd_check(upe, req_path, req_base):
 
 def wcd_making(s, url_p, req_base):
     req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
-    print(req_path)
+    #print(req_path)
     if req_path.status_code not in [410, 404, 308]:
         if req_path.status_code == 403 and req_base.status_code == 403:
             pass
