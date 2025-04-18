@@ -13,5 +13,7 @@ options:
                         Add a custom HTTP Header
   -p, --path KNOWN_PATH
                         If you know the path, Ex: -p my-account
+  -k, --keyword KEYWORD
+                        If a keyword must be present in the poisoned response, Ex: -k codejump
 
 ```
