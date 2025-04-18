@@ -1,0 +1,3 @@
+extensions = ['.css', '.js', '.jpg', '.png', '.svg', '.gif', '.html', '.txt', '.pdf', '.xml', '.json', '%20.css', '..css', '~.css', '%00.css', '%0aaaa', '$static.css', '%23static.css', '#static.css']
+DEFAULT_PATHS = ['account', 'profile', 'dashboard', 'settings', 'user', 'admin', 'private', 'my-account', 'user/profile', 'dashboard/image', 'dashboard/profile', 'account/user', 'address']
+KNOWN_PATHS = []
