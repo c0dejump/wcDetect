@@ -72,7 +72,7 @@ def wcd_base(url, s, custom_headers, keyword):
             np = np if np[0] != "/" else np[1:]
             url_p = f"{url}{np}"
             wcd_formatting(s, url_p, req_base, custom_headers, keyword)
-    if not known_path:
+    else:
         for dp in DEFAULT_PATHS:
             url_p = f"{url}{dp}"
             wcd_formatting(s, url_p, req_base, custom_headers, keyword)   
