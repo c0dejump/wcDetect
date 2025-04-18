@@ -34,6 +34,7 @@ def args():
         -f, --file (str): File of URLs.
         -H, --header (str): Add a custom HTTP Header.
         -p, --path (str): If you know the path, Ex: -p my-account
+        -k --keyword (str): If a keyword must be present in the poisoned response
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -52,6 +53,9 @@ def args():
     )
     parser.add_argument(
         "-p", "--path", dest="known_path", help="If you know the path, Ex: -p my-account", required=False
+    )
+    parser.add_argument(
+        "-k", "--keyword", dest="keyword", help="If a keyword must be present in the poisoned response, Ex: -k codejump", required=False
     )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -188,8 +192,12 @@ def wcd_check(upe, req_path, req_base):
             words1 = get_visible_text(req_verify)
             words2 = get_visible_text(req_path)
             similarity = compare_words(words1, words2)
-            if similarity > 15:
-                print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | {similarity:.2f}% | \033[34m{upe}\033[0m")
+
+            if similarity > 30 and not keyword:
+                print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | [{req_ext.status_code}] | {similarity:.2f}% | \033[34m{upe}\033[0m")
+            elif keyword:
+                if keyword in req_verify.text:
+                    print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present | \033[34m{upe}\033[0m")
             else:
                 print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | Cache Deception | [{req_path.status_code}] > [{req_ext.status_code}] | CACHETAG: {cache_status} | {similarity:.2f}% | \033[34m{upe}\033[0m")
     else:
@@ -264,6 +272,7 @@ if __name__ == '__main__':
     url_file = results.url_file
     custom_headers = results.custom_headers
     known_path = results.known_path
+    keyword = results.keyword
 
     s = requests.Session()
     s.headers.update({"User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
