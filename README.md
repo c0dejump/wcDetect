@@ -2,7 +2,7 @@
 web cache deception detect
 
 ```bash                  
-usage: cache_deception.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADERS] [-p KNOWN_PATH]
+usage: wcdetect.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADERS] [-p KNOWN_PATH] [-k KEYWORD]
 
 options:
   -h, --help            show this help message and exit
