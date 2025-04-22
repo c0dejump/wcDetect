@@ -46,23 +46,25 @@ def wcd_check(s, upe, req_path, req_base, custom_headers, keyword):
 def wcd_formatting(s, url_p, req_base, custom_headers, keyword):
     req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
     #print(req_path)
+    delimiters = ["/", "?", ";", "%20", "_", ".", "~", "%00", "%0a", "$", "%23", "#"]
     if req_path.status_code not in [410, 404, 308]:
         if req_path.status_code == 403 and req_base.status_code == 403:
             pass
         else:
             for e in extensions:
-                buster = ''.join(random.choices(string.ascii_letters, k=random.randint(8, 10)))
                 url_p_e = [
                 f"{url_p}{e}/", #Ex: toto.com/profile.css/
                 f"{url_p}{e}", #Ex: toto.com/profile.css
-                f"{url_p}/{buster}{e}", #Ex: toto.com/profile/azdefr.css
-                f"{url_p}?{buster}{e}", #Ex: toto.com/profile?azdefr.css
-                f"{url_p};{buster}{e}", #Ex: toto.com/profile;azdefr.css
                 f"{url_p}?format={e}", #Ex: toto.com/profile?format=pdf
                 ]
                 for upe in url_p_e:
-                    #print(upe)
                     wcd_check(s, upe, req_path, req_base, custom_headers, keyword)
+                    print(f" {upe}", end='\r')
+                for d in delimiters:
+                    buster = ''.join(random.choices(string.ascii_letters, k=random.randint(8, 10)))
+                    upe = f"{url_p}{d}{buster}{e}" #Ex: toto.com/profile;dzede.css
+                    wcd_check(s, upe, req_path, req_base, custom_headers, keyword)
+                    print(f" {upe}", end='\r')
 
 
 def wcd_base(url, s, custom_headers, keyword):

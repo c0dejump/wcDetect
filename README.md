@@ -1,8 +1,7 @@
-# wcdetect
+# wcDetect
 web cache deception detect
 
-```
-python3 cache_deception.py -h                          
+```bash                  
 usage: cache_deception.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADERS] [-p KNOWN_PATH]
 
 options:
@@ -17,3 +16,7 @@ options:
                         If a keyword must be present in the poisoned response, Ex: -k codejump
 
 ```
+
+## Examples
+
+![example 1](./static/exemple.png)

@@ -8,6 +8,7 @@ import argparse
 import traceback
 
 from modules.payloads import DEFAULT_PATHS, KNOWN_PATHS
+from static.banner import print_banner
 
 from modules.recon import Recon
 from modules.wcd import wcd_base
@@ -34,7 +35,7 @@ def args():
         -p, --path (str): If you know the path, Ex: -p my-account
         -k --keyword (str): If a keyword must be present in the poisoned response
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=print_banner())
     parser.add_argument(
         "-u", "--url", dest="url", help="URL to test \033[31m[required]\033[0m"
     )
@@ -107,15 +108,15 @@ if __name__ == '__main__':
         parsed_url = urlparse(url)
         try:
             if not known_path:
-                print("== Recon ==")
+                print("\n\033[36m ├ Recon\033[0m")
                 recon_modules(url, s)
-            print("== WCD Check ==")
+            print("\n\033[36m ├ WCD Check\033[0m")
             wcd_base(url, s, custom_headers, keyword)
         except KeyboardInterrupt:
             print("Exiting")
             sys.exit()
         except Exception as e:
-            traceback.print_exc()
+            #traceback.print_exc()
             print(f"Error : {e}")
             pass
     elif url_file:
@@ -131,6 +132,6 @@ if __name__ == '__main__':
                 print("Exiting")
                 sys.exit()
             except Exception as e:
-                traceback.print_exc()
+                #traceback.print_exc()
                 print(f"Error : {e}")
                 pass
