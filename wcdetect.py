@@ -86,6 +86,20 @@ def parse_headers(header_list):
     return headers
 
 
+def process_modules(url, s, custom_headers, keyword):
+    url_p = f"{url}{known_path}" if known_path else url
+    req_main = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
+    print("\033[34m⟙\033[0m")
+    print(f" URL: {url_p}")
+    print(f" URL response: {req_main.status_code}")
+    print(f" URL response size: {len(req_main.content)} bytes")
+    print("\033[34m⟘\033[0m")
+    if not known_path:
+        print("\n\033[36m ├ Recon\033[0m")
+        recon_modules(url, s)
+    print("\n\033[36m ├ WCD Check\033[0m")
+    wcd_base(url, s, custom_headers, keyword)
+
 if __name__ == '__main__':
     results = args()
 
@@ -98,6 +112,7 @@ if __name__ == '__main__':
     s = requests.Session()
     s.headers.update({"User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
 
+
     if custom_headers:
         custom_headers = parse_headers(custom_headers)
         s.headers.update(custom_headers)
@@ -107,11 +122,7 @@ if __name__ == '__main__':
     if not url_file:
         parsed_url = urlparse(url)
         try:
-            if not known_path:
-                print("\n\033[36m ├ Recon\033[0m")
-                recon_modules(url, s)
-            print("\n\033[36m ├ WCD Check\033[0m")
-            wcd_base(url, s, custom_headers, keyword)
+            process_modules(url, s, custom_headers, keyword)
         except KeyboardInterrupt:
             print("Exiting")
             sys.exit()
@@ -124,9 +135,7 @@ if __name__ == '__main__':
             urls = [line.strip() for line in f if line.strip()]
         for url in urls:
             try:
-                if not known_path:
-                    recon_modules(url, s)
-                wcd_base(url, s, custom_headers, keyword)
+                process_modules(url, s, custom_headers, keyword)
                 print(f" {url}", end='\r')
             except KeyboardInterrupt:
                 print("Exiting")

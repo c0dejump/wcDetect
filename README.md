@@ -29,3 +29,11 @@ options:
 ## Examples
 
 ![example 1](./static/exemple.png)
+
+## Informations
+
+if you want to test the script:
+- https://portswigger.net/web-security/web-cache-deceptionv
+
+To retrieve the session cookie quickly and easily:
+- https://cookie-editor.com/
