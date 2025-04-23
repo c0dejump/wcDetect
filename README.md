@@ -16,6 +16,15 @@ options:
                         If a keyword must be present in the poisoned response, Ex: -k codejump
 
 ```
+### Arguments
+
+```bash
+# With multiple headers
+» ./wcdetect.py -u https://0a4f00ae0447a9ce801a03a500ea0097.web-security-academy.net/ -H "Cookie: session=OocpsiwqB6XOUkBkBDuqEHUb2BxYEvbC" -H "x-forwarded-host: toto"
+
+#With specific keyword
+» ./wcdetect.py -u https://0a4f00ae0447a9ce801a03a500ea0097.web-security-academy.net/ -H "Cookie: session=OocpsiwqB6XOUkBkBDuqEHUb2BxYEvbC" -p my-account -k wiener
+```
 
 ## Examples
 
