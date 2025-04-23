@@ -22,7 +22,7 @@ options:
 # With multiple headers
 » ./wcdetect.py -u https://0a4f00ae0447a9ce801a03a500ea0097.web-security-academy.net/ -H "Cookie: session=OocpsiwqB6XOUkBkBDuqEHUb2BxYEvbC" -H "x-forwarded-host: toto"
 
-# With specific keyword
+# With specific keyword and path
 » ./wcdetect.py -u https://0a4f00ae0447a9ce801a03a500ea0097.web-security-academy.net/ -H "Cookie: session=OocpsiwqB6XOUkBkBDuqEHUb2BxYEvbC" -p my-account -k wiener
 ```
 
@@ -32,8 +32,11 @@ options:
 
 ## Informations
 
-if you want to test the script:
+If you want to test the script:
 - https://portswigger.net/web-security/web-cache-deception
 
 To retrieve the session cookie quickly and easily:
 - https://cookie-editor.com/
+
+If you want to add payloads or other items
+- modules/payloads.py

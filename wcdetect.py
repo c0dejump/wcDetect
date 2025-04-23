@@ -75,6 +75,8 @@ def recon_modules(base_url, s):
     Recon.check_path_accessibility(base_url, found_paths, s)
     Recon.check_path_accessibility(base_url, found_links, s)
     Recon.bruteforce_common_paths(base_url, s)
+    print(KNOWN_PATHS)
+
 
 def parse_headers(header_list):
     headers = {}
@@ -90,7 +92,9 @@ def process_modules(url, s, custom_headers, keyword):
     url_p = f"{url}{known_path}" if known_path else url
     req_main = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
     print("\033[34m⟙\033[0m")
-    print(f" URL: {url_p}")
+    print(f" URL: {url}")
+    print(f" Path: {known_path}")
+    print(f" Keyword: {keyword}")
     print(f" URL response: {req_main.status_code}")
     print(f" URL response size: {len(req_main.content)} bytes")
     print("\033[34m⟘\033[0m")
