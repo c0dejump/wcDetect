@@ -3,7 +3,7 @@
 
 from modules.utils import requests, BeautifulSoup, random, string
 from urllib.parse import urljoin, urlparse
-from modules.payloads import DEFAULT_PATHS, KNOWN_PATHS, extensions
+from modules.payloads import DEFAULT_PATHS, KNOWN_PATHS, extensions, delimiters
 from modules.compare import get_visible_text, compare_words
 
 def check_cache_presence(req_ext):
@@ -27,12 +27,12 @@ def wcd_check(s, upe, req_path, req_base, custom_headers, keyword):
             words2 = get_visible_text(req_path)
             similarity = compare_words(words1, words2)
 
-            if similarity > 30 and not keyword:
+            if similarity > 50 and not keyword:
                 print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | [{req_ext.status_code}] | {similarity:.2f}% | \033[34m{upe}\033[0m")
             elif keyword:
                 if keyword in req_verify.text:
                     print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present | \033[34m{upe}\033[0m")
-            else:
+            elif 20 <= similarity <= 50 :
                 print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | Cache Deception | [{req_path.status_code}] > [{req_ext.status_code}] | {similarity:.2f}% | CACHETAG: {cache_status} | \033[34m{upe}\033[0m")
     else:
         if req_ext.status_code != req_path.status_code and req_ext.status_code not in [410, 404, 403, 308]:
@@ -46,7 +46,6 @@ def wcd_check(s, upe, req_path, req_base, custom_headers, keyword):
 def wcd_formatting(s, url_p, req_base, custom_headers, keyword):
     req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
     #print(req_path)
-    delimiters = ["/", "?", ";", "%20", "_", ".", "~", "%00", "%0a", "$", "%23", "#"]
     if req_path.status_code not in [410, 404, 308]:
         if req_path.status_code == 403 and req_base.status_code == 403:
             pass
