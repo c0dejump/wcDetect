@@ -33,7 +33,7 @@ options:
 ## Informations
 
 if you want to test the script:
-- https://portswigger.net/web-security/web-cache-deceptionv
+- https://portswigger.net/web-security/web-cache-deception
 
 To retrieve the session cookie quickly and easily:
 - https://cookie-editor.com/
