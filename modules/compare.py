@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from modules.utils import BeautifulSoup, re
+from bs4 import MarkupResemblesLocatorWarning
+import warnings
+
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 def get_visible_text(req):
     soup = BeautifulSoup(req.text, 'html.parser')

@@ -75,7 +75,7 @@ def recon_modules(base_url, s):
     Recon.check_path_accessibility(base_url, found_paths, s)
     Recon.check_path_accessibility(base_url, found_links, s)
     Recon.bruteforce_common_paths(base_url, s)
-    print(KNOWN_PATHS)
+    #print(KNOWN_PATHS)
 
 
 def parse_headers(header_list):
@@ -90,19 +90,24 @@ def parse_headers(header_list):
 
 def process_modules(url, s, custom_headers, keyword):
     url_p = f"{url}{known_path}" if known_path else url
+    #print(s.headers)
     req_main = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
     print("\033[34m⟙\033[0m")
     print(f" URL: {url}")
     print(f" Path: {known_path}")
-    print(f" Keyword: {keyword}")
+    if keyword:
+        print(f" Keyword: {keyword} ({"\033[32mFound on page\033[0m" if keyword in req_main.text else "\033[33mNot found on page\033[0m"})")
+    else:
+        print(f" Keyword: {keyword}")
     print(f" URL response: {req_main.status_code}")
     print(f" URL response size: {len(req_main.content)} bytes")
     print("\033[34m⟘\033[0m")
     if not known_path:
-        print("\n\033[36m ├ Recon\033[0m")
+        print("\033[36m ├ Recon\033[0m")
         recon_modules(url, s)
     print("\n\033[36m ├ WCD Check\033[0m")
     wcd_base(url, s, custom_headers, keyword)
+    print("\n======= Scan finish =======\n")
 
 if __name__ == '__main__':
     results = args()
@@ -114,7 +119,7 @@ if __name__ == '__main__':
     keyword = results.keyword
 
     s = requests.Session()
-    s.headers.update({"User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+    s.headers.update({"User-agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"})
 
 
     if custom_headers:
