@@ -8,7 +8,7 @@ Prints a colorful ASCII art banner along with a brief description of the HExHTTP
 try:
     from _version import __version__
 except ImportError:
-    __version__ = "vβ"
+    __version__ = "v1.0"
 
 
 
@@ -20,7 +20,7 @@ def print_banner() -> None:
     """
     print(f"{banner_text}")
     print(
-        f"wcdetect(vβ)"
+        f"wcdetect v1.0"
     )
 
 

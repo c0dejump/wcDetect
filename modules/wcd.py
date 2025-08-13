@@ -24,6 +24,7 @@ def wcd_check(s, upe, req_path, req_base, custom_headers, keyword):
     try:
         if custom_headers:
             req_verify = requests.get(upe, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, timeout=10)
+            #if req_verify.status_code == 429: 
             if req_verify.status_code == req_ext.status_code and len(req_verify.content) != len(req_base.content):
                 words1 = get_visible_text(req_verify)
                 words2 = get_visible_text(req_path)
@@ -44,43 +45,56 @@ def wcd_check(s, upe, req_path, req_base, custom_headers, keyword):
             print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | Cache Deception | HL: {len(req_path.headers)}b > {len(req_ext.headers)}b | CACHETAG: {cache_status} | \033[34m{upe}\033[0m")
         """
     except:
-        traceback.print_exc()
+        pass
+        #traceback.print_exc()
 
 
-def wcd_formatting(s, url_p, req_base, custom_headers, keyword):
+def path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword):
+    url_ptc = [
+        f"{url}%2F..%2F{kp}?cb={random.randint(1, 100)}",
+        f"{url}%2F..%2F/{kp}?cb={random.randint(1, 100)}",
+        f"{url}%2F../{kp}?cb={random.randint(1, 100)}",
+        ]
+    for ptc in url_ptc:
+        wcd_check(s, ptc, req_path, req_base, custom_headers, keyword)
+        print(f" {ptc}", end='\r')
+        
+
+def wcd_formatting(s, url_p, req_base, req_path, custom_headers, keyword):
     try:
-        req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
-        #print(req_path)
-        if req_path.status_code not in [410, 404, 308]:
-            if req_path.status_code == 403 and req_base.status_code == 403:
-                pass
-            else:
-                for e in extensions:
-                    url_p_e = [
-                    f"{url_p}{e}/", #Ex: toto.com/profile.css/
-                    f"{url_p}{e}", #Ex: toto.com/profile.css
-                    f"{url_p}?format={e}", #Ex: toto.com/profile?format=pdf
-                    ]
-                    for upe in url_p_e:
-                        wcd_check(s, upe, req_path, req_base, custom_headers, keyword)
-                        print(f" {upe}", end='\r')
-                    for d in delimiters:
-                        buster = ''.join(random.choices(string.ascii_letters, k=random.randint(8, 10)))
-                        upe = f"{url_p}{d}{buster}{e}" #Ex: toto.com/profile;dzede.css
-                        wcd_check(s, upe, req_path, req_base, custom_headers, keyword)
-                        print(f" {upe}", end='\r')
+        for e in extensions:
+            url_p_e = [
+            f"{url_p}{e}/", #Ex: toto.com/profile.css/
+            f"{url_p}{e}", #Ex: toto.com/profile.css
+            f"{url_p}?format={e}", #Ex: toto.com/profile?format=pdf
+            ]
+            for upe in url_p_e:
+                wcd_check(s, upe, req_path, req_base, custom_headers, keyword)
+                print(f" {upe}", end='\r')
+            for d in delimiters:
+                buster = ''.join(random.choices(string.ascii_letters, k=random.randint(8, 10)))
+                upe = f"{url_p}{d}{buster}{e}" #Ex: toto.com/profile;dzede.css
+                wcd_check(s, upe, req_path, req_base, custom_headers, keyword)
+                print(f" {upe}", end='\r')
     except:
-        print(req_path)
-        traceback.print_exc()
+        print(f"{req_path}{url_p}") 
+        #traceback.print_exc()
 
 
 def wcd_base(url, s, custom_headers, keyword):
     req_base = s.get(url, verify=False, allow_redirects=False, timeout=10)
     if KNOWN_PATHS:
-        for np in KNOWN_PATHS:
-            np = np if np[0] != "/" else np[1:]
-            url_p = f"{url}{np}"
-            wcd_formatting(s, url_p, req_base, custom_headers, keyword)
+        for kp in KNOWN_PATHS:
+            kp = kp if kp[0] != "/" else kp[1:]
+            url_p = f"{url}{kp}"
+            req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
+            #print(req_path)
+            if req_path.status_code not in [410, 404, 308]:
+                if req_path.status_code == 403 and req_base.status_code == 403:
+                    pass
+                else:
+                    path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword)
+                    wcd_formatting(s, url_p, req_base, req_path, custom_headers, keyword)
     else:
         for dp in DEFAULT_PATHS:
             url_p = f"{url}{dp}"

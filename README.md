@@ -30,6 +30,11 @@ options:
 
 ![example 1](./static/exemple.png)
 
+## Features
+
+- Path traversal confusion
+- Testing multiple payloads and extensions (modules/payloads.py)
+
 ## Informations
 
 If you want to test the script:

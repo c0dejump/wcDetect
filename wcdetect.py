@@ -92,6 +92,7 @@ def process_modules(url, s, custom_headers, keyword):
     url_p = f"{url}{known_path}" if known_path else url
     #print(s.headers)
     req_main = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
+
     print("\033[34m⟙\033[0m")
     print(f" URL: {url}")
     print(f" Path: {known_path}")
@@ -102,6 +103,7 @@ def process_modules(url, s, custom_headers, keyword):
     print(f" URL response: {req_main.status_code}")
     print(f" URL response size: {len(req_main.content)} bytes")
     print("\033[34m⟘\033[0m")
+
     if not known_path:
         print("\033[36m ├ Recon\033[0m")
         recon_modules(url, s)
@@ -119,8 +121,15 @@ if __name__ == '__main__':
     keyword = results.keyword
 
     s = requests.Session()
-    s.headers.update({"User-agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"})
+    s.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"})
 
+    #delete "Accept" header
+    #s.headers.pop("Accept", None)
+    #original_send = s.send
+    #def send_without_accept(request, **kwargs):
+        #request.headers.pop("Accept", None)
+        #return original_send(request, **kwargs)
+    #s.send = send_without_accept
 
     if custom_headers:
         custom_headers = parse_headers(custom_headers)
