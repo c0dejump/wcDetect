@@ -56,6 +56,14 @@ def args():
     parser.add_argument(
         "-k", "--keyword", dest="keyword", help="If a keyword must be present in the poisoned response, Ex: -k codejump", required=False
     )
+    parser.add_argument(
+        "-hu", 
+        "--human", 
+        dest="human",         
+        help="Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'",
+        default="0",
+        required=False,
+    )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -107,8 +115,9 @@ def process_modules(url, s, custom_headers, keyword):
     if not known_path:
         print("\033[36m ├ Recon\033[0m")
         recon_modules(url, s)
+
     print("\n\033[36m ├ WCD Check\033[0m")
-    wcd_base(url, s, custom_headers, keyword)
+    wcd_base(url, s, custom_headers, keyword, human)
     print("\n======= Scan finish =======\n")
 
 if __name__ == '__main__':
@@ -119,6 +128,7 @@ if __name__ == '__main__':
     custom_headers = results.custom_headers
     known_path = results.known_path
     keyword = results.keyword
+    human = results.human
 
     s = requests.Session()
     s.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"})

@@ -36,3 +36,13 @@ class Colors:
 class Identify:
     behavior = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
     confirmed = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
+
+
+
+def human_time(human: str) -> None:
+    if human.isdigit():
+        time.sleep(int(human))
+    elif human.lower() == "r" or human.lower() == "random":
+        time.sleep(random.randrange(6))  # nosec B311
+    else:
+        pass
