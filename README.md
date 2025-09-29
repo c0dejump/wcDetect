@@ -14,6 +14,8 @@ options:
                         If you know the path, Ex: -p my-account
   -k, --keyword KEYWORD
                         If a keyword must be present in the poisoned response, Ex: -k codejump
+  -hu HUMAN, --human HUMAN
+                        Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
 
 ```
 ### Arguments
