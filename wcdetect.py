@@ -105,7 +105,7 @@ def process_modules(url, s, custom_headers, keyword):
     print(f" URL: {url}")
     print(f" Path: {known_path}")
     if keyword:
-        print(f" Keyword: {keyword} ({"\033[32mFound on page\033[0m" if keyword in req_main.text else "\033[33mNot found on page\033[0m"})")
+        print(f" Keyword: {keyword} ({"\033[32mFound on page\033[0m" if keyword.lower() in req_main.text.lower() else "\033[33mNot found on page\033[0m"})")
     else:
         print(f" Keyword: {keyword}")
     print(f" URL response: {req_main.status_code}")

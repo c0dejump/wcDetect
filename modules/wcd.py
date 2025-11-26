@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from modules.utils import requests, BeautifulSoup, random, string, human_time, time, sys
+from modules.utils import requests, BeautifulSoup, random, string, human_time, time, sys, check_cache_presence
 from urllib.parse import urljoin, urlparse
 from modules.payloads import DEFAULT_PATHS, KNOWN_PATHS, extensions, delimiters
 from modules.compare import get_visible_text, compare_words
@@ -9,29 +9,28 @@ import traceback
 
 BLOCK_COUNT = 0
 
-def waf_verify(req_verify, s, url):
+def waf_verify(req_verify, s, url, upe):
     global BLOCK_COUNT
     if req_verify.status_code == 429:
-        print("[I] 429 You appear to have been blocked by a WAF.")
-        sys.exit()
-    if req_verify.status_code == 403:
-        req_403_test = s.get(url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, timeout=10)
-        if BLOCK_COUNT > 3 and req_403_test.status_code == 403:
-            print("[I] 403 You appear to have been blocked by a WAF.")
+        print(f"[I] 429 You appear to have been blocked by a WAF with {upe} url.")
+        continue_scan = input("wait 1min & continue ? [y:n]")
+        if continue_scan == "y" or continue_scan == "Y":
+            time.sleep(60)
+            BLOCK_COUNT = 0
+        else:
             sys.exit()
+    if req_verify.status_code == 403:
+        req_403_test = s.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}, verify=False, allow_redirects=False, timeout=10)
+        if BLOCK_COUNT > 3 and req_403_test.status_code == 403:
+            print(f"[I] 403 You appear to have been blocked by a WAF with {upe} url.")
+            continue_scan = input("wait 1min & continue ? [y:n]")
+            if continue_scan == "y" or continue_scan == "Y":
+                time.sleep(60)
+                BLOCK_COUNT = 0
+            else:
+                sys.exit()
         else:
             BLOCK_COUNT += 1
-
-
-def check_cache_presence(req_ext):
-    #print(req_ext.headers)
-    hit_tag = False
-    for rh in req_ext.headers:
-        if "age" in rh.lower() or "hit" in req_ext.headers[rh].lower():
-            hit_tag = True
-        else:
-            pass
-    return hit_tag
 
 
 def wcd_check(s, url, upe, req_path, req_base, custom_headers, keyword, human):
@@ -41,8 +40,8 @@ def wcd_check(s, url, upe, req_path, req_base, custom_headers, keyword, human):
     cache_status = check_cache_presence(req_ext)
     try:
         if custom_headers:
-            req_verify = requests.get(upe, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, timeout=10)
-            waf_verify(req_verify, s, url)
+            req_verify = requests.get(upe, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}, verify=False, allow_redirects=False, timeout=10)
+            waf_verify(req_verify, s, url, upe)
 
             if req_verify.status_code == req_ext.status_code and len(req_verify.content) != len(req_base.content):
                 words1 = get_visible_text(req_verify)
@@ -69,7 +68,7 @@ def wcd_check(s, url, upe, req_path, req_base, custom_headers, keyword, human):
         if waiting != "n" and waiting != "N":
             time.sleep(5)
             try:
-                req_retest = requests.get(upe, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, timeout=10)
+                req_retest = requests.get(upe, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}, verify=False, allow_redirects=False, timeout=10)
                 pass
             except:
                 sys.exit()
@@ -85,11 +84,48 @@ def path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, key
         f"{url}%2F..%2F{kp}?cb={random.randint(1, 100)}",
         f"{url}%2F..%2F/{kp}?cb={random.randint(1, 100)}",
         f"{url}%2F../{kp}?cb={random.randint(1, 100)}",
+        f"{url}%2F../../static/{kp}?cb={random.randint(1, 100)}",
         f"{url}%2F%252e%252e%252f{kp}?cb={random.randint(1, 100)}",
         ]
     for ptc in url_ptc:
         wcd_check(s, url, ptc, req_path, req_base, custom_headers, keyword, human)
         print(f" {ptc}", end='\r')
+
+
+def tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human):
+    url_tp = [
+    f"{url_p}?utm_source=abc",
+    f"{url_p}?utm_medium=abc",
+    f"{url_p}?utm_campaign=abc",
+    f"{url_p}?utm_term=abc",
+    f"{url_p}?utm_content=abc",
+    f"{url_p}?utm_id=abc",
+    f"{url_p}?utm_source_platform=abc",
+    f"{url_p}?utm_creative_format=abc",
+    f"{url_p}?utm_marketing_tactic=abc",
+    f"{url_p}?gclid=abc",
+    f"{url_p}?gclsrc=abc",
+    f"{url_p}?dclid=abc",
+    f"{url_p}?gbraid=abc",
+    f"{url_p}?wbraid=abc",
+    f"{url_p}?msclkid=abc",
+    f"{url_p}?ref=abc",
+    f"{url_p}?referrer=abc",
+    f"{url_p}?source=abc",
+    f"{url_p}?campaign=abc",
+    f"{url_p}?_ga=abc",
+    f"{url_p}?_gl=abc",
+    f"{url_p}?aff_id=abc",
+    f"{url_p}?affiliate_id=abc",
+    f"{url_p}?click_id=abc",
+    f"{url_p}?clickid=abc",
+    f"{url_p}?transaction_id=abc",
+    f"{url_p}?from=abc",
+    f"{url_p}?v=1.2.3",
+    ]
+    for ut in url_tp:
+        wcd_check(s, url, ut, req_path, req_base, custom_headers, keyword, human)
+        print(f" {ut}", end='\r')
         
 
 def wcd_formatting(s, url_p, req_base, req_path, custom_headers, keyword, human):
@@ -100,6 +136,7 @@ def wcd_formatting(s, url_p, req_base, req_path, custom_headers, keyword, human)
             f"{url_p}{e}", #Ex: toto.com/profile.css
             f"{url_p}?format={e}", #Ex: toto.com/profile?format=pdf
             f"{url_p}?type={e}",
+            f"{url_p}?callback={e}",
             f"{url_p}?a={e}&a=1",
             ]
             for upe in url_p_e:
@@ -132,8 +169,9 @@ def wcd_base(url, s, custom_headers, keyword, human):
                     pass
                 else:
                     path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword, human)
+                    tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
                     wcd_formatting(s, url_p, req_base, req_path, custom_headers, keyword, human)
     else:
         for dp in DEFAULT_PATHS:
             url_p = f"{url}{dp}"
-            wcd_formatting(s, url_p, req_base, custom_headers, keyword)   
+            wcd_formatting(s, url_p, req_base, custom_headers, keyword, human)

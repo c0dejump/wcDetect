@@ -46,3 +46,14 @@ def human_time(human: str) -> None:
         time.sleep(random.randrange(6))  # nosec B311
     else:
         pass
+
+
+def check_cache_presence(req_ext):
+    #print(req_ext.headers)
+    hit_tag = False
+    for rh in req_ext.headers:
+        if "age" in rh.lower() or "hit" in req_ext.headers[rh].lower():
+            hit_tag = True
+        else:
+            pass
+    return hit_tag
