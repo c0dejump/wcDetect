@@ -81,6 +81,7 @@ If you want to test the script:
 
 To retrieve the session cookie quickly and easily:
 - https://cookie-editor.com/
+- https://addons.mozilla.org/fr/firefox/addon/get_cookies/
 
 If you want to add payloads or other items
 - modules/payloads.py
