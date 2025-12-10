@@ -14,13 +14,15 @@ except ImportError:
 
 def print_banner() -> None:
     banner_text = """
-  / \\ / \\ / \\ / \\ / \\ / \\ / \\ / \\ 
- ( w | c | D | e | t | e | c | t )
-  \\_/ \\_/ \\_/ \\_/ \\_/ \\_/ \\_/ \\_/                                                                                                                                                                                              
+┌───────┐ ──╮╭── ┌───────┐
+│       │   ││   │       │
+│   W   │   ││   │   D   │
+│       │   ││   │       │
+└───────┘ ──╯╰── └───────┘                                                                                                                                                                   
     """
     print(f"{banner_text}")
     print(
-        f"wcdetect v1.0"
+        f"wcdetect v1.1"
     )
 
 

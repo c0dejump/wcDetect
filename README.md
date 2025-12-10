@@ -3,9 +3,8 @@ web cache deception detect
 
 
 <p align="center">
-  <img src="./static/wcdetect_logo.png" alt="Logo" width="420">
+  <img src="./static/wcdetect_logo.png" alt="Logo" width="320">
 </p>
-
 <div align="center">
 <img src="https://img.shields.io/github/v/release/c0dejump/wcDetect" alt="release version">
 <img alt="Python3.7" src="https://img.shields.io/badge/Python-3.7+-informational">
