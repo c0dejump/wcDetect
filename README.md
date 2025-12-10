@@ -3,7 +3,7 @@ web cache deception detect
 
 
 <p align="center">
-  <img src="./static/wcdetect_logo.png" alt="Logo" width="520">
+  <img src="./static/wcdetect_logo.png" alt="Logo" width="420">
 </p>
 
 <div align="center">
