@@ -10,6 +10,34 @@ web cache deception detect
 <img alt="Python3.7" src="https://img.shields.io/badge/Python-3.7+-informational">
 </div>
 
+
+## Installation
+
+
+Follow these steps to install **wcDetect**:
+
+1. **Clone the repository** to your local machine:
+   ```bash
+   git clone https://github.com/c0dejump/wcDetect.git
+   ```
+2. **Change Directory**   
+   ```bash
+   cd wcDetect
+   ```
+3. **Install** the required dependencies:
+   ```bash
+   pip install -r requirements.txt 
+   ```
+
+4. **Ensure wcDetect** is running correctly:
+   ```bash
+   ./wcdetect.py -h
+      # OR
+   python3 wcdetect.py -h
+   ```
+
+## Usage
+
 ```bash                  
 usage: wcdetect.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADERS] [-p KNOWN_PATH] [-k KEYWORD]
 
