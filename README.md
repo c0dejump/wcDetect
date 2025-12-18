@@ -39,20 +39,24 @@ Follow these steps to install **wcDetect**:
 ## Usage
 
 ```bash                  
-usage: wcdetect.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADERS] [-p KNOWN_PATH] [-k KEYWORD]
+usage: wcdetect.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADERS] [-p KNOWN_PATH] [-k KEYWORD] [-hu HUMAN]
+                   [-ua UA_FORCE]
 
 options:
   -h, --help            show this help message and exit
-  -u, --url URL         URL to test [required]
-  -f, --file URL_FILE   File of URLs
-  -H, --header CUSTOM_HEADERS
+  -u URL, --url URL     URL to test [required]
+  -f URL_FILE, --file URL_FILE
+                        File of URLs
+  -H CUSTOM_HEADERS, --header CUSTOM_HEADERS
                         Add a custom HTTP Header
-  -p, --path KNOWN_PATH
+  -p KNOWN_PATH, --path KNOWN_PATH
                         If you know the path, Ex: -p my-account
-  -k, --keyword KEYWORD
+  -k KEYWORD, --keyword KEYWORD
                         If a keyword must be present in the poisoned response, Ex: -k codejump
   -hu HUMAN, --human HUMAN
                         Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
+  -ua UA_FORCE, --ua UA_FORCE
+                        If need a specific user-agent (Default: random)
 
 ```
 ### Arguments
@@ -72,6 +76,8 @@ options:
 ## Features
 
 - Path traversal confusion
+- WCD Formatting (?format, ?query...)
+- WCD tracking param (?utm_source...)
 - Testing multiple payloads and extensions (modules/payloads.py)
 
 ## Informations

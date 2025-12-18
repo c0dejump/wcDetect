@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from modules.utils import requests, BeautifulSoup, random, string, human_time, time, sys, check_cache_presence
+from modules.utils import requests, BeautifulSoup, random, string, human_time, time, sys, check_cache_presence, random_ua
 from urllib.parse import urljoin, urlparse
 from modules.payloads import DEFAULT_PATHS, KNOWN_PATHS, extensions, delimiters
 from modules.compare import get_visible_text, compare_words
@@ -12,49 +12,44 @@ BLOCK_COUNT = 0
 def waf_verify(req_verify, s, url, upe):
     global BLOCK_COUNT
     if req_verify.status_code == 429:
-        print(f"[I] 429 You appear to have been blocked by a WAF with {upe} url.")
-        continue_scan = input("wait 1min & continue ? [y:n]")
-        if continue_scan == "y" or continue_scan == "Y":
-            time.sleep(60)
-            BLOCK_COUNT = 0
-        else:
-            sys.exit()
+        print(f"[I] 429 You appear to have been blocked by a WAF with {upe} url waiting 2min or use -hu option.")
+        time.sleep(120)
+        BLOCK_COUNT = 0
     if req_verify.status_code == 403:
-        req_403_test = s.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}, verify=False, allow_redirects=False, timeout=10)
-        if BLOCK_COUNT > 3 and req_403_test.status_code == 403:
-            print(f"[I] 403 You appear to have been blocked by a WAF with {upe} url.")
-            continue_scan = input("wait 1min & continue ? [y:n]")
-            if continue_scan == "y" or continue_scan == "Y":
-                time.sleep(60)
-                BLOCK_COUNT = 0
-            else:
-                sys.exit()
+        s.headers.update(random_ua())
+        #print(s.headers)
+        req_403_test = s.get(url, verify=False, allow_redirects=False, timeout=10)
+        if BLOCK_COUNT > 5 and req_403_test.status_code == 403:
+            print(f"[I] 403 You appear to have been blocked by a WAF with {upe} url waiting 2min or use -hu option.")
+            time.sleep(120)
+            BLOCK_COUNT = 0
         else:
             BLOCK_COUNT += 1
 
 
-def wcd_check(s, url, upe, req_path, req_base, custom_headers, keyword, human):
+def wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human):
     for _ in range(3):
+        s.headers.update(random_ua())
         req_ext = s.get(upe, verify=False, allow_redirects=False, timeout=10)
         human_time(human)
     cache_status = check_cache_presence(req_ext)
     try:
-        if custom_headers:
-            req_verify = requests.get(upe, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}, verify=False, allow_redirects=False, timeout=10)
-            waf_verify(req_verify, s, url, upe)
-
+        headers = random_ua()
+        req_verify = requests.get(upe, headers=headers, verify=False, allow_redirects=False, timeout=10)
+        waf_verify(req_verify, s, url_p, upe)
+        if custom_headers and not keyword:
             if req_verify.status_code == req_ext.status_code and len(req_verify.content) != len(req_base.content):
                 words1 = get_visible_text(req_verify)
                 words2 = get_visible_text(req_path)
                 similarity = compare_words(words1, words2)
 
-                if similarity > 50 and not keyword:
+                if similarity > 50:
                     print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | [{req_ext.status_code}] | {similarity:.2f}% | \033[34m{upe}\033[0m")
-                elif keyword:
-                    if keyword in req_verify.text:
-                        print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present | \033[34m{upe}\033[0m")
                 elif 20 <= similarity <= 50 :
                     print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | Cache Deception | [{req_path.status_code}] > [{req_ext.status_code}] | {similarity:.2f}% | CACHETAG: {cache_status} | \033[34m{upe}\033[0m")
+        elif custom_headers and keyword:
+            if keyword in req_verify.text:
+                print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present | \033[34m{upe}\033[0m")
         else:
             if req_ext.status_code != req_path.status_code and req_ext.status_code not in [410, 404, 403, 308]:
                 print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | Cache Deception | HL: {len(req_path.headers)}b > {len(req_ext.headers)}b | [{req_path.status_code}] > [{req_ext.status_code}] | CACHETAG: {cache_status} | \033[34m{upe}\033[0m")
@@ -68,7 +63,7 @@ def wcd_check(s, url, upe, req_path, req_base, custom_headers, keyword, human):
         if waiting != "n" and waiting != "N":
             time.sleep(5)
             try:
-                req_retest = requests.get(upe, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}, verify=False, allow_redirects=False, timeout=10)
+                req_retest = requests.get(upe, headers=random_ua(), verify=False, allow_redirects=False, timeout=10)
                 pass
             except:
                 sys.exit()
@@ -80,98 +75,146 @@ def wcd_check(s, url, upe, req_path, req_base, custom_headers, keyword, human):
 
 
 def path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword, human):
-    url_ptc = [
-        f"{url}%2F..%2F{kp}?cb={random.randint(1, 100)}",
-        f"{url}%2F..%2F/{kp}?cb={random.randint(1, 100)}",
-        f"{url}%2F../{kp}?cb={random.randint(1, 100)}",
-        f"{url}%2F../../static/{kp}?cb={random.randint(1, 100)}",
-        f"{url}%2F%252e%252e%252f{kp}?cb={random.randint(1, 100)}",
-        ]
-    for ptc in url_ptc:
-        wcd_check(s, url, ptc, req_path, req_base, custom_headers, keyword, human)
-        print(f" {ptc}", end='\r')
+    try:
+        url_p = f"{url}{kp}"
+        url_ptc = [
+                f"{url}%2F..%2F{kp}?cb={random.randint(1, 100)}",
+                f"{url}%2F..%2F/{kp}?cb={random.randint(1, 100)}",
+                f"{url}%2F../{kp}?cb={random.randint(1, 100)}",
+                f"{url}%2F../../static/{kp}?cb={random.randint(1, 100)}",
+                f"{url}%2F%252e%252e%252f{kp}?cb={random.randint(1, 100)}",
+                f"{url}static/%2E%2E/{kp}",
+                f"{url}public/content/%252e{kp}",
+                f"{url}../{kp}",
+                f"{url}..;/{kp}",
+                f"{url}%2e%2e/{kp}",
+                f"{url}..../{kp}",
+                f"{url}../{kp}/../hidden",
+                f"{url}/static/%2E%2E/{kp}",
+                f"{url}/public/content/%252e{kp}",
+                f"{url}/../{kp}/../hidden",
+            ]
+        for ptc in url_ptc:
+            wcd_check(s, url, url_p, ptc, req_path, req_base, custom_headers, keyword, human)
+            print(f" {ptc}", end='\r')
+    except requests.ConnectionError:
+        print(f"Error: cannot connect to target {url}")
+        pass
+    except requests.exceptions.ReadTimeout:
+        print(f"ReadTimeout error: Server did not respond within the specified timeout with {url}")
+        pass
+    except Exception as e:
+        print(f"Error : {e}")
+        pass
 
 
 def tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human):
-    url_tp = [
-    f"{url_p}?utm_source=abc",
-    f"{url_p}?utm_medium=abc",
-    f"{url_p}?utm_campaign=abc",
-    f"{url_p}?utm_term=abc",
-    f"{url_p}?utm_content=abc",
-    f"{url_p}?utm_id=abc",
-    f"{url_p}?utm_source_platform=abc",
-    f"{url_p}?utm_creative_format=abc",
-    f"{url_p}?utm_marketing_tactic=abc",
-    f"{url_p}?gclid=abc",
-    f"{url_p}?gclsrc=abc",
-    f"{url_p}?dclid=abc",
-    f"{url_p}?gbraid=abc",
-    f"{url_p}?wbraid=abc",
-    f"{url_p}?msclkid=abc",
-    f"{url_p}?ref=abc",
-    f"{url_p}?referrer=abc",
-    f"{url_p}?source=abc",
-    f"{url_p}?campaign=abc",
-    f"{url_p}?_ga=abc",
-    f"{url_p}?_gl=abc",
-    f"{url_p}?aff_id=abc",
-    f"{url_p}?affiliate_id=abc",
-    f"{url_p}?click_id=abc",
-    f"{url_p}?clickid=abc",
-    f"{url_p}?transaction_id=abc",
-    f"{url_p}?from=abc",
-    f"{url_p}?v=1.2.3",
-    ]
-    for ut in url_tp:
-        wcd_check(s, url, ut, req_path, req_base, custom_headers, keyword, human)
-        print(f" {ut}", end='\r')
+    try:
+        url_tp = [
+            f"{url_p}?utm_source=abc",
+            f"{url_p}?utm_medium=abc",
+            f"{url_p}?utm_campaign=abc",
+            f"{url_p}?utm_term=abc",
+            f"{url_p}?utm_content=abc",
+            f"{url_p}?utm_id=abc",
+            f"{url_p}?utm_source_platform=abc",
+            f"{url_p}?utm_creative_format=abc",
+            f"{url_p}?utm_marketing_tactic=abc",
+            f"{url_p}?gclid=abc",
+            f"{url_p}?gclsrc=abc",
+            f"{url_p}?dclid=abc",
+            f"{url_p}?gbraid=abc",
+            f"{url_p}?wbraid=abc",
+            f"{url_p}?msclkid=abc",
+            f"{url_p}?ref=abc",
+            f"{url_p}?referrer=abc",
+            f"{url_p}?source=abc",
+            f"{url_p}?campaign=abc",
+            f"{url_p}?_ga=abc",
+            f"{url_p}?_gl=abc",
+            f"{url_p}?aff_id=abc",
+            f"{url_p}?affiliate_id=abc",
+            f"{url_p}?click_id=abc",
+            f"{url_p}?clickid=abc",
+            f"{url_p}?transaction_id=abc",
+            f"{url_p}?from=abc",
+            f"{url_p}?v=1.2.3",
+            f"{url_p}?debug=true",
+            f"{url_p}?test=true",
+            f"{url_p}?env=dev",
+            f"{url_p}?show=hidden",
+            f"{url_p}?download=tempfile",
+        ]
+        for ut in url_tp:
+            wcd_check(s, url, url_p, ut, req_path, req_base, custom_headers, keyword, human)
+            print(f" {ut}", end='\r')
+    except requests.ConnectionError:
+        print(f"Error, cannot connect to target {url}")
+        pass
+    except requests.exceptions.ReadTimeout:
+        print(f"ReadTimeout error: Server did not respond within the specified timeout with {url}")
+        pass
+    except Exception as e:
+        print(f"Error : {e}")
+        pass
+ 
         
 
-def wcd_formatting(s, url_p, req_base, req_path, custom_headers, keyword, human):
+def wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human):
     try:
         for e in extensions:
             url_p_e = [
-            f"{url_p}{e}/", #Ex: toto.com/profile.css/
-            f"{url_p}{e}", #Ex: toto.com/profile.css
-            f"{url_p}?format={e}", #Ex: toto.com/profile?format=pdf
-            f"{url_p}?type={e}",
-            f"{url_p}?callback={e}",
-            f"{url_p}?a={e}&a=1",
+                f"{url_p}{e}/", #Ex: toto.com/profile.css/
+                f"{url_p}{e}", #Ex: toto.com/profile.css
+                f"{url_p}/cache{e}", #Ex: toto.com/profile/cache.css
+                f"{url_p}?format={e}", #Ex: toto.com/profile?format=pdf
+                f"{url_p}?type={e}",
+                f"{url_p}?callback={e}",
+                f"{url_p}?query={e}",
+                f"{url_p}?a={e}&a=1",
             ]
             for upe in url_p_e:
-                wcd_check(s, url_p, upe, req_path, req_base, custom_headers, keyword, human)
+                wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human)
                 print(f" {upe}", end='\r')
             for d in delimiters:
                 buster = ''.join(random.choices(string.ascii_letters, k=random.randint(8, 10)))
                 upe = f"{url_p}{d}{buster}{e}" #Ex: toto.com/profile;dzede.css
-                wcd_check(s, url_p, upe, req_path, req_base, custom_headers, keyword, human)
+                wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human)
                 print(f" {upe}", end='\r')
     except requests.ConnectionError:
-        print("Error, cannot connect to target")
+        print(f"Error; cannot connect to target {url}")
+        pass
+    except requests.exceptions.ReadTimeout:
+        print(f"ReadTimeout error: Server did not respond within the specified timeout with {url}")
+        pass
     except Exception as e:
         print(f"Error : {e}")
         pass
 
 
 def wcd_base(url, s, custom_headers, keyword, human):
-    req_base = s.get(url, verify=False, allow_redirects=False, timeout=10)
-    if KNOWN_PATHS:
-        for kp in KNOWN_PATHS:
-            kp = kp if kp[0] != "/" else kp[1:]
-            url_p = f"{url}{kp}"
-            req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
-            #print(req_path)
-            if req_path.status_code not in [410, 404, 308, 429]:
-                if req_path.status_code == 429:
-                    print("[I] 429 You appear to have been blocked by a WAF.")
-                if req_path.status_code == 403 and req_base.status_code == 403:
-                    pass
-                else:
-                    path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword, human)
-                    tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
-                    wcd_formatting(s, url_p, req_base, req_path, custom_headers, keyword, human)
-    else:
-        for dp in DEFAULT_PATHS:
-            url_p = f"{url}{dp}"
-            wcd_formatting(s, url_p, req_base, custom_headers, keyword, human)
+    try:
+        req_base = s.get(url, verify=False, allow_redirects=False, timeout=10)
+        if KNOWN_PATHS:
+            for kp in KNOWN_PATHS:
+                kp = kp if kp[0] != "/" else kp[1:]
+                url_p = f"{url}{kp}"
+                req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
+                #print(req_path)
+                if req_path.status_code not in [410, 404, 308, 429]:
+                    if req_path.status_code == 429:
+                        print("[I] 429 You appear to have been blocked by a WAF.")
+                    if req_path.status_code == 403 and req_base.status_code == 403:
+                        pass
+                    else:
+                        path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword, human)
+                        tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
+                        wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
+        else:
+            for dp in DEFAULT_PATHS:
+                url_p = f"{url}{dp}"
+                wcd_formatting(s, url, url_p, req_base, custom_headers, keyword, human)
+    except Exception as e:
+        #traceback.print_exc()
+        print(f"Error : {e}")
+        pass

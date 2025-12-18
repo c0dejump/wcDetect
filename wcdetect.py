@@ -13,6 +13,8 @@ from static.banner import print_banner
 from modules.recon import Recon
 from modules.wcd import wcd_base
 
+import modules.utils
+
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
@@ -63,6 +65,9 @@ def args():
         help="Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'",
         default="0",
         required=False,
+    )
+    parser.add_argument(
+        "-ua", "--ua", dest="ua_force", help="If need a specific user-agent (Default: random)", default="random"
     )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -129,15 +134,20 @@ if __name__ == '__main__':
     known_path = results.known_path
     keyword = results.keyword
     human = results.human
+    ua_force = results.ua_force
+
+    modules.utils.DEFAULT_UA = ua_force
 
     s = requests.Session()
-    s.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"})
+    s.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0"})
 
     #delete "Accept" header
     #s.headers.pop("Accept", None)
+    #s.headers.pop("Accept-Encoding", None)
     #original_send = s.send
     #def send_without_accept(request, **kwargs):
         #request.headers.pop("Accept", None)
+        #request.headers.pop("Accept-Encoding", None)
         #return original_send(request, **kwargs)
     #s.send = send_without_accept
 
