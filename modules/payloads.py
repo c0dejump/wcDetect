@@ -1,5 +1,6 @@
 extensions = [
     ".css", ".js", ".CSS", ".JS", ".svg",
+    ".js.map", ".css.map", ".html.css", ".css.json", ".json.css",
     ".asp", ".aspx", ".atom", ".bak", ".backup", ".bin", ".cgi", ".csv", 
     ".do", ".eot", ".exe", ".fake.js", ".gif", ".html", ".ico", 
     ".jpg", ".jpeg", ".json", ".jsonp", ".jsp", ".mp3", ".mp4", ".old", ".pdf", 
@@ -10,7 +11,9 @@ extensions = [
     ".m4v", ".mid", ".midi", ".mov", ".ogg", ".ogv", ".otf", ".ppt", ".pptx", ".psd",
     ".rar", ".rtf", ".sit", ".sitx", ".swf", ".tar", ".tgz", ".tif", ".tiff", ".wav",
     ".webp", ".xls", ".xlsx", ".xsl", ".xslt",
-    ".bak~", ".conf", ".ini", ".php5", ".php7", ".env", ".sh", ".zip.tmp", ".git/config"
+    ".bak~", ".conf", ".ini", ".php5", ".php7", ".env", ".sh", ".zip.tmp", ".git/config",
+    ".rsc", ".rsc.css", ".rsc.map", ".rsc.js", ".jsx.css", ".astro.css", "_image.css",
+    ".data", ".data.css"
 ]
 
 delimiters = [
@@ -29,5 +32,8 @@ delimiters = [
     "....//", "..../", ".%00", "..%00", "%2e%2e/", "%2e%2e%2f"
 ]
 
-DEFAULT_PATHS = ['account', 'profile', 'dashboard', 'settings', 'user', 'admin', 'private', 'my-account', 'user/profile', 'dashboard/image', 'dashboard/profile', 'account/user', 'address']
+DEFAULT_PATHS = ['account', 'profile', 'dashboard', 'settings', 'user', 'admin', 'private', 'my-account', 'user/profile', 
+                 'dashboard/image', 'dashboard/profile', 'account/user', 'address', 'my', 'my/home', 'home',
+                ]
+
 KNOWN_PATHS = []

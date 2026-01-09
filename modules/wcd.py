@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from modules.utils import requests, BeautifulSoup, random, string, human_time, time, sys, check_cache_presence, random_ua
+from modules.utils import requests, BeautifulSoup, random, string, human_time, time, sys, check_cache_presence, random_ua, spinner, Colors
 from urllib.parse import urljoin, urlparse
 from modules.payloads import DEFAULT_PATHS, KNOWN_PATHS, extensions, delimiters
 from modules.compare import get_visible_text, compare_words
@@ -9,11 +9,13 @@ import traceback
 
 BLOCK_COUNT = 0
 
+
+
 def waf_verify(req_verify, s, url, upe):
     global BLOCK_COUNT
     if req_verify.status_code == 429:
         print(f"[I] 429 You appear to have been blocked by a WAF with {upe} url waiting 2min or use -hu option.")
-        time.sleep(120)
+        spinner(120)
         BLOCK_COUNT = 0
     if req_verify.status_code == 403:
         s.headers.update(random_ua())
@@ -21,38 +23,38 @@ def waf_verify(req_verify, s, url, upe):
         req_403_test = s.get(url, verify=False, allow_redirects=False, timeout=10)
         if BLOCK_COUNT > 5 and req_403_test.status_code == 403:
             print(f"[I] 403 You appear to have been blocked by a WAF with {upe} url waiting 2min or use -hu option.")
-            time.sleep(120)
+            spinner(120)
             BLOCK_COUNT = 0
         else:
             BLOCK_COUNT += 1
 
 
 def wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human):
-    for _ in range(3):
-        s.headers.update(random_ua())
-        req_ext = s.get(upe, verify=False, allow_redirects=False, timeout=10)
-        human_time(human)
-    cache_status = check_cache_presence(req_ext)
     try:
+        for _ in range(3):
+            s.headers.update(random_ua())
+            req_ext = s.get(upe, verify=False, allow_redirects=False, timeout=10, stream=False)
+            human_time(human)
+        cache_status = check_cache_presence(req_ext)
         headers = random_ua()
-        req_verify = requests.get(upe, headers=headers, verify=False, allow_redirects=False, timeout=10)
+        req_verify = requests.get(upe, headers=headers, verify=False, allow_redirects=False, timeout=10, stream=False)
         waf_verify(req_verify, s, url_p, upe)
         if custom_headers and not keyword:
-            if req_verify.status_code == req_ext.status_code and len(req_verify.content) != len(req_base.content):
+            if len(req_verify.content) != len(req_base.content):
                 words1 = get_visible_text(req_verify)
                 words2 = get_visible_text(req_path)
                 similarity = compare_words(words1, words2)
 
-                if similarity > 50:
-                    print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | [{req_ext.status_code}] | {similarity:.2f}% | \033[34m{upe}\033[0m")
-                elif 20 <= similarity <= 50 :
-                    print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | Cache Deception | [{req_path.status_code}] > [{req_ext.status_code}] | {similarity:.2f}% | CACHETAG: {cache_status} | \033[34m{upe}\033[0m")
+                if similarity > 65:
+                    print(f"{Colors.RED} └── [VULNERABILITY CONFIRMED]{Colors.RESET} | Cache Deception | CACHETAG: {cache_status} | [{req_ext.status_code}] | SIM: {similarity:.2f}% | {Colors.BLUE}{upe}{Colors.RESET}")
+                elif 25 <= similarity <= 65 :
+                    print(f"{Colors.YELLOW} └── [INTERESTING BEHAVIOR]{Colors.RESET} | Cache Deception | [{req_path.status_code}] > [{req_ext.status_code}] | SIM: {similarity:.2f}% | CACHETAG: {cache_status} | {Colors.BLUE}{upe}{Colors.RESET}")
         elif custom_headers and keyword:
             if keyword in req_verify.text:
-                print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present | \033[34m{upe}\033[0m")
+                print(f"{Colors.RED} └── [VULNERABILITY CONFIRMED]{Colors.RESET} | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present | {Colors.BLUE}{upe}{Colors.RESET}")
         else:
             if req_ext.status_code != req_path.status_code and req_ext.status_code not in [410, 404, 403, 308]:
-                print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | Cache Deception | HL: {len(req_path.headers)}b > {len(req_ext.headers)}b | [{req_path.status_code}] > [{req_ext.status_code}] | CACHETAG: {cache_status} | \033[34m{upe}\033[0m")
+                print(f"{Colors.YELLOW} └── [INTERESTING BEHAVIOR]{Colors.RESET} | Cache Deception | HL: {len(req_path.headers)}b > {len(req_ext.headers)}b | [{req_path.status_code}] > [{req_ext.status_code}] | CACHETAG: {cache_status} | {Colors.BLUE}{upe}{Colors.RESET}")
         """
         elif len(req_ext.headers) != len(req_path.headers) and req_ext.status_code not in [410, 404, 403, 308]:
             print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | Cache Deception | HL: {len(req_path.headers)}b > {len(req_ext.headers)}b | CACHETAG: {cache_status} | \033[34m{upe}\033[0m")
@@ -69,6 +71,10 @@ def wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, h
                 sys.exit()
         else:
             sys.exit()
+    except requests.exceptions.ChunkedEncodingError as e:
+        print("Connection broken: IncompleteRead/trunked due to waf wait 2min...")
+        spinner(120)
+        pass
     except Exception as e:
         print(f"Error : {e}")
         pass
@@ -213,7 +219,8 @@ def wcd_base(url, s, custom_headers, keyword, human):
         else:
             for dp in DEFAULT_PATHS:
                 url_p = f"{url}{dp}"
-                wcd_formatting(s, url, url_p, req_base, custom_headers, keyword, human)
+                req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
+                wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
     except Exception as e:
         #traceback.print_exc()
         print(f"Error : {e}")

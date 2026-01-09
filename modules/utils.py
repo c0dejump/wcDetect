@@ -45,7 +45,7 @@ def human_time(human: str) -> None:
     if human.isdigit():
         time.sleep(int(human))
     elif human.lower() == "r" or human.lower() == "random":
-        time.sleep(random.randrange(6))  # nosec B311
+        time.sleep(random.randrange(6))
     else:
         pass
 
@@ -98,3 +98,18 @@ def random_ua():
     else:
         _user_agent = {"User-Agent": DEFAULT_UA}
     return(_user_agent)
+
+
+
+def spinner(duration=5, message="Waiting 2 min..."):
+    chars = "|/-\\"
+    end_time = time.time() + duration
+    i = 0
+
+    while time.time() < end_time:
+        sys.stdout.write(f"\r{message} {chars[i % len(chars)]}")
+        sys.stdout.flush()
+        i += 1
+        time.sleep(0.1)
+
+    sys.stdout.write("\r" + " " * (len(message) + 2) + "\r")

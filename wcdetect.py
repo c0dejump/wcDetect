@@ -88,7 +88,6 @@ def recon_modules(base_url, s):
     Recon.check_path_accessibility(base_url, found_paths, s)
     Recon.check_path_accessibility(base_url, found_links, s)
     Recon.bruteforce_common_paths(base_url, s)
-    #print(KNOWN_PATHS)
 
 
 def parse_headers(header_list):
@@ -120,6 +119,9 @@ def process_modules(url, s, custom_headers, keyword):
     if not known_path:
         print("\033[36m ├ Recon\033[0m")
         recon_modules(url, s)
+        print(" └── paths found:")
+        for kp in KNOWN_PATHS:
+            print(f"    └─ {kp}")
 
     print("\n\033[36m ├ WCD Check\033[0m")
     wcd_base(url, s, custom_headers, keyword, human)
