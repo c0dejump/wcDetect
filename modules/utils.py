@@ -45,7 +45,7 @@ def human_time(human: str) -> None:
     if human.isdigit():
         time.sleep(int(human))
     elif human.lower() == "r" or human.lower() == "random":
-        time.sleep(random.randrange(6))
+        time.sleep(random.uniform(0.5, 4.0))
     else:
         pass
 

@@ -15,7 +15,7 @@ def waf_verify(req_verify, s, url, upe):
     global BLOCK_COUNT
     if req_verify.status_code == 429:
         print(f"[I] 429 You appear to have been blocked by a WAF with {upe} url waiting 2min or use -hu option.")
-        spinner(120)
+        spinner(60)
         BLOCK_COUNT = 0
     if req_verify.status_code == 403:
         s.headers.update(random_ua())
@@ -23,7 +23,7 @@ def waf_verify(req_verify, s, url, upe):
         req_403_test = s.get(url, verify=False, allow_redirects=False, timeout=10)
         if BLOCK_COUNT > 5 and req_403_test.status_code == 403:
             print(f"[I] 403 You appear to have been blocked by a WAF with {upe} url waiting 2min or use -hu option.")
-            spinner(120)
+            spinner(60)
             BLOCK_COUNT = 0
         else:
             BLOCK_COUNT += 1
@@ -50,8 +50,10 @@ def wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, h
                 elif 25 <= similarity <= 65 :
                     print(f"{Colors.YELLOW} └── [INTERESTING BEHAVIOR]{Colors.RESET} | Cache Deception | [{req_path.status_code}] > [{req_ext.status_code}] | SIM: {similarity:.2f}% | CACHETAG: {cache_status} | {Colors.BLUE}{upe}{Colors.RESET}")
         elif custom_headers and keyword:
-            if keyword in req_verify.text:
-                print(f"{Colors.RED} └── [VULNERABILITY CONFIRMED]{Colors.RESET} | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present | {Colors.BLUE}{upe}{Colors.RESET}")
+            if keyword.lower() in req_verify.text.lower():
+                print(f"{Colors.RED} └── [VULNERABILITY CONFIRMED]{Colors.RESET} | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present in BODY | {Colors.BLUE}{upe}{Colors.RESET}")
+            if keyword.lower() in str(req_verify.headers).lower():
+                print(f"{Colors.RED} └── [VULNERABILITY CONFIRMED]{Colors.RESET} | Cache Deception | CACHETAG: {cache_status} | Keyword [{keyword}] present in HEADERS | {Colors.BLUE}{upe}{Colors.RESET}")
         else:
             if req_ext.status_code != req_path.status_code and req_ext.status_code not in [410, 404, 403, 308]:
                 print(f"{Colors.YELLOW} └── [INTERESTING BEHAVIOR]{Colors.RESET} | Cache Deception | HL: {len(req_path.headers)}b > {len(req_ext.headers)}b | [{req_path.status_code}] > [{req_ext.status_code}] | CACHETAG: {cache_status} | {Colors.BLUE}{upe}{Colors.RESET}")
@@ -76,7 +78,8 @@ def wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, h
         spinner(120)
         pass
     except Exception as e:
-        print(f"Error : {e}")
+        #traceback.print_exc()
+        #print(f"Error (wcf.py l.79) : {e}")
         pass
 
 
@@ -110,7 +113,7 @@ def path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, key
         print(f"ReadTimeout error: Server did not respond within the specified timeout with {url}")
         pass
     except Exception as e:
-        print(f"Error : {e}")
+        print(f"Error (wcf.py l.113): {e}")
         pass
 
 
@@ -161,7 +164,7 @@ def tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, h
         print(f"ReadTimeout error: Server did not respond within the specified timeout with {url}")
         pass
     except Exception as e:
-        print(f"Error : {e}")
+        print(f"Error (wcf.py l.164): {e}")
         pass
  
         
@@ -194,7 +197,7 @@ def wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, h
         print(f"ReadTimeout error: Server did not respond within the specified timeout with {url}")
         pass
     except Exception as e:
-        print(f"Error : {e}")
+        print(f"Error (wcf.py l.197): {e}")
         pass
 
 
@@ -207,7 +210,7 @@ def wcd_base(url, s, custom_headers, keyword, human):
                 url_p = f"{url}{kp}"
                 req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
                 #print(req_path)
-                if req_path.status_code not in [410, 404, 308, 429]:
+                if req_path.status_code not in [410, 404, 308]:
                     if req_path.status_code == 429:
                         print("[I] 429 You appear to have been blocked by a WAF.")
                     if req_path.status_code == 403 and req_base.status_code == 403:
@@ -220,8 +223,16 @@ def wcd_base(url, s, custom_headers, keyword, human):
             for dp in DEFAULT_PATHS:
                 url_p = f"{url}{dp}"
                 req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
-                wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
+                if req_path.status_code not in [410, 404, 308]:
+                    if req_path.status_code == 429:
+                        print("[I] 429 You appear to have been blocked by a WAF.")
+                    if req_path.status_code == 403 and req_base.status_code == 403:
+                        pass
+                    else:
+                        path_traversal_confusion(s, url, dp, req_base, req_path, custom_headers, keyword, human)
+                        tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
+                        wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
     except Exception as e:
-        #traceback.print_exc()
-        print(f"Error : {e}")
+        traceback.print_exc()
+        print(f"Error (wcd.py) : {e}")
         pass

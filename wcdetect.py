@@ -12,6 +12,7 @@ from static.banner import print_banner
 
 from modules.recon import Recon
 from modules.wcd import wcd_base
+from modules.crawler import Crawler
 
 import modules.utils
 
@@ -23,19 +24,15 @@ def args():
     """
     Parses command-line arguments and returns them.
 
-    This function uses argparse to define and parse command-line arguments for the script.
-    It includes options for specifying a URL, a file of URLs, custom HTTP headers, user agents,
-    authentication, verbosity, logging, and threading.
-
-    Returns:
-        argparse.Namespace: Parsed command-line arguments.
-
     Arguments:
-        -u, --url (str): URL to test [required].
-        -f, --file (str): File of URLs.
-        -H, --header (str): Add a custom HTTP Header.
-        -p, --path (str): If you know the path, Ex: -p my-account
-        -k --keyword (str): If a keyword must be present in the poisoned response
+        -u, --url (str):     URL to test [required].
+        -f, --file (str):    File of URLs.
+        -H, --header (str):  Add a custom HTTP Header.
+        -p, --path (str):    If you know the path, Ex: -p my-account
+        -k, --keyword (str): If a keyword must be present in the poisoned response
+        -c, --crawl:         Auto-crawl mode — discover all pages then run WCD tests.
+                             Combined with -k, only pages containing the keyword are tested.
+        --max-pages (int):   Max pages to crawl in auto-crawl mode (default: 100)
     """
     parser = argparse.ArgumentParser(description=print_banner())
     parser.add_argument(
@@ -53,21 +50,42 @@ def args():
         required=False,
     )
     parser.add_argument(
-        "-p", "--path", dest="known_path", help="If you know the path, Ex: -p my-account", required=False
+        "-p", "--path", dest="known_path",
+        help="If you know the path, Ex: -p my-account", required=False
     )
     parser.add_argument(
-        "-k", "--keyword", dest="keyword", help="If a keyword must be present in the poisoned response, Ex: -k codejump", required=False
+        "-k", "--keyword", dest="keyword",
+        help="If a keyword must be present in the poisoned response, Ex: -k codejump",
+        required=False
     )
     parser.add_argument(
-        "-hu", 
-        "--human", 
-        dest="human",         
+        "-c", "--crawl", dest="crawl",
+        help=(
+            "Auto-crawl mode: discover all pages of the site then run WCD tests on each. "
+            "When combined with -k, only pages where the keyword is found (body or header) are tested."
+        ),
+        action="store_true",
+        default=False,
+        required=False,
+    )
+    parser.add_argument(
+        "--max-pages", dest="max_pages",
+        help="Maximum number of pages to crawl in auto-crawl mode (default: 100)",
+        type=int,
+        default=100,
+        required=False,
+    )
+    parser.add_argument(
+        "-hu",
+        "--human",
+        dest="human",
         help="Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'",
         default="0",
         required=False,
     )
     parser.add_argument(
-        "-ua", "--ua", dest="ua_force", help="If need a specific user-agent (Default: random)", default="random"
+        "-ua", "--ua", dest="ua_force",
+        help="If need a specific user-agent (Default: random)", default="random"
     )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -102,14 +120,19 @@ def parse_headers(header_list):
 
 def process_modules(url, s, custom_headers, keyword):
     url_p = f"{url}{known_path}" if known_path else url
-    #print(s.headers)
-    req_main = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
+    req_main = s.get(url_p, verify=False, allow_redirects=False, timeout=20)
 
     print("\033[34m⟙\033[0m")
     print(f" URL: {url}")
     print(f" Path: {known_path}")
     if keyword:
-        print(f" Keyword: {keyword} ({"\033[32mFound on page\033[0m" if keyword.lower() in req_main.text.lower() else "\033[33mNot found on page\033[0m"})")
+        headers_str = str(req_main.headers).lower()
+        if keyword.lower() in req_main.text.lower():
+            print(f" Keyword: {keyword} (\033[32mFound on page\033[0m)")
+        elif keyword.lower() in headers_str:
+            print(f" Keyword: {keyword} (\033[32mFound on header\033[0m)")
+        else:
+            print(f" Keyword: {keyword} (\033[33mNot found on page or header\033[0m)")
     else:
         print(f" Keyword: {keyword}")
     print(f" URL response: {req_main.status_code}")
@@ -127,6 +150,69 @@ def process_modules(url, s, custom_headers, keyword):
     wcd_base(url, s, custom_headers, keyword, human)
     print("\n======= Scan finish =======\n")
 
+
+def process_crawl_mode(base_url, s, custom_headers, keyword, max_pages):
+    """
+    Auto-crawl mode:
+      1. Crawl the target site to discover all pages (BFS, same domain).
+      2. If -k is set, keep only pages where the keyword was found (body or header).
+         Otherwise test every crawled page.
+      3. For each selected page, run the full WCD test workflow.
+    """
+    crawler = Crawler(
+        base_url=base_url,
+        session=s,
+        keyword=keyword,
+        max_pages=max_pages,
+        delay=0.0,
+        verbose=True,
+    )
+    pages_to_test = crawler.crawl()   # list of (url, kw_location)
+
+    if not pages_to_test:
+        if keyword:
+            print(f"\n\033[33m[!] No page found containing keyword \"{keyword}\". Nothing to test.\033[0m")
+        else:
+            print("\n\033[33m[!] No pages were discovered. Nothing to test.\033[0m")
+        return
+
+    print(f"\n\033[36m ├ WCD Tests\033[0m — running on {len(pages_to_test)} page(s)\n")
+
+    for idx, (page_url, kw_location) in enumerate(pages_to_test, 1):
+        parsed_page = urlparse(page_url)
+        rel_path = parsed_page.path
+        if parsed_page.query:
+            rel_path += "?" + parsed_page.query
+
+        print("\033[34m⟙\033[0m")
+        print(f" [{idx}/{len(pages_to_test)}] URL: {page_url}")
+        if keyword and kw_location:
+            loc_label = "\033[32mBody\033[0m" if kw_location == "body" else "\033[32mHeader\033[0m"
+            print(f" Keyword: {keyword} (Found in {loc_label})")
+        elif keyword:
+            print(f" Keyword: {keyword} (\033[33mNot confirmed on this page\033[0m)")
+        print("\033[34m⟘\033[0m")
+
+        # Rebuild KNOWN_PATHS for this specific page only
+        KNOWN_PATHS.clear()
+        path_for_wcd = rel_path.lstrip("/")
+        if path_for_wcd:
+            KNOWN_PATHS.append(path_for_wcd)
+
+        print(f"\033[36m ├ WCD Check\033[0m — {page_url}")
+        try:
+            wcd_base(base_url, s, custom_headers, keyword, human)
+        except KeyboardInterrupt:
+            print("\nScan interrupted by user.")
+            sys.exit()
+        except Exception as e:
+            print(f" [ERR] {e}")
+
+        print()
+
+    print("======= Crawl scan finished =======\n")
+
+
 if __name__ == '__main__':
     results = args()
 
@@ -135,23 +221,19 @@ if __name__ == '__main__':
     custom_headers = results.custom_headers
     known_path = results.known_path
     keyword = results.keyword
+    crawl_mode = results.crawl
+    max_pages = results.max_pages
     human = results.human
     ua_force = results.ua_force
 
     modules.utils.DEFAULT_UA = ua_force
 
     s = requests.Session()
-    s.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0"})
-
-    #delete "Accept" header
-    #s.headers.pop("Accept", None)
-    #s.headers.pop("Accept-Encoding", None)
-    #original_send = s.send
-    #def send_without_accept(request, **kwargs):
-        #request.headers.pop("Accept", None)
-        #request.headers.pop("Accept-Encoding", None)
-        #return original_send(request, **kwargs)
-    #s.send = send_without_accept
+    s.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/146.0.0.0 Safari/537.36"
+    })
 
     if custom_headers:
         custom_headers = parse_headers(custom_headers)
@@ -159,7 +241,25 @@ if __name__ == '__main__':
     if known_path:
         KNOWN_PATHS.append(known_path)
 
-    if not url_file:
+    # ------------------------------------------------------------------ #
+    #  Routing: crawl mode vs. standard mode                              #
+    # ------------------------------------------------------------------ #
+    if crawl_mode:
+        # Auto-crawl: discover pages, locate keyword, run WCD on each hit
+        if not url:
+            print("\033[31m[!] -c/--crawl requires -u/--url\033[0m")
+            sys.exit(1)
+        try:
+            process_crawl_mode(url, s, custom_headers, keyword, max_pages)
+        except KeyboardInterrupt:
+            print("\nExiting")
+            sys.exit()
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
+
+    elif not url_file:
+        # Standard single-URL mode (unchanged)
         parsed_url = urlparse(url)
         try:
             process_modules(url, s, custom_headers, keyword)
@@ -167,10 +267,11 @@ if __name__ == '__main__':
             print("Exiting")
             sys.exit()
         except Exception as e:
-            #traceback.print_exc()
             print(f"Error : {e}")
             pass
-    elif url_file:
+
+    else:
+        # File of URLs mode (unchanged)
         with open(url_file, 'r') as f:
             urls = [line.strip() for line in f if line.strip()]
         for url in urls:
@@ -181,6 +282,5 @@ if __name__ == '__main__':
                 print("Exiting")
                 sys.exit()
             except Exception as e:
-                #traceback.print_exc()
                 print(f"Error : {e}")
                 pass

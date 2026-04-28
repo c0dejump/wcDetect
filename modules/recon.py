@@ -77,7 +77,7 @@ class Recon:
         for path in paths_to_test:
             full_url = urljoin(base_url, path)
             try:
-                resp = requests.get(full_url, verify=False, allow_redirects=False, timeout=10)
+                resp = s.get(full_url, verify=False, allow_redirects=False, timeout=10)
                 if resp.status_code not in [404, 403]:
                     KNOWN_PATHS.append(path)
             except Exception as e:
