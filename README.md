@@ -53,6 +53,9 @@ options:
                         If you know the path, Ex: -p my-account
   -k KEYWORD, --keyword KEYWORD
                         If a keyword must be present in the poisoned response, Ex: -k codejump
+  -c, --crawl           Auto-crawl mode: discover all pages of the site then run WCD tests on each. When combined with -k, only pages where the keyword is found (body or header) are tested.
+  --max-pages MAX_PAGES
+                        Maximum number of pages to crawl in auto-crawl mode (default: 100)
   -hu HUMAN, --human HUMAN
                         Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
   -ua UA_FORCE, --ua UA_FORCE
