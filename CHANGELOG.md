@@ -1,6 +1,16 @@
 Changelog:
 ----------
 
+- 1.4
+---------
+	Updated:
+	- Fix bugs
+	- New payloads
+	- New logo
+	New:
+	- New module "crawler" which crawls pages to check whether the keyword is present and whether the page is cached by default, and then tests it
+
+---------
 
 - 1.3
 ---------
