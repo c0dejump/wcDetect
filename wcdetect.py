@@ -3,7 +3,8 @@
 
 import requests
 import sys
-from urllib.parse import urljoin, urlparse
+import json
+from urllib.parse import urljoin, urlparse, parse_qs
 import argparse
 import traceback
 
@@ -76,6 +77,16 @@ def args():
         required=False,
     )
     parser.add_argument(
+        "-d", "--data", dest="post_data",
+        help=(
+            "Send POST requests with this body (simulates victim fetching personal data). "
+            "Supports JSON ('{\"key\":\"val\"}') or form-encoded ('key=val&key2=val2'). "
+            "The verify request stays GET so cached responses are detectable."
+        ),
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
         "-hu",
         "--human",
         dest="human",
@@ -108,6 +119,18 @@ def recon_modules(base_url, s):
     Recon.bruteforce_common_paths(base_url, s)
 
 
+def parse_post_data(data_str):
+    """Parse -d argument into kwargs for requests.post().
+    Returns dict with 'json' or 'data' key, or None if no data."""
+    if not data_str:
+        return None
+    stripped = data_str.strip()
+    if stripped.startswith('{') or stripped.startswith('['):
+        return {'json': json.loads(stripped)}
+    parsed = parse_qs(stripped, keep_blank_values=True)
+    return {'data': {k: v[0] for k, v in parsed.items()}}
+
+
 def parse_headers(header_list):
     headers = {}
     if header_list:
@@ -118,9 +141,12 @@ def parse_headers(header_list):
     return headers
 
 
-def process_modules(url, s, custom_headers, keyword):
+def process_modules(url, s, custom_headers, keyword, post_data=None):
     url_p = f"{url}{known_path}" if known_path else url
-    req_main = s.get(url_p, verify=False, allow_redirects=False, timeout=20)
+    if post_data is not None:
+        req_main = s.post(url_p, verify=False, allow_redirects=False, timeout=20, **post_data)
+    else:
+        req_main = s.get(url_p, verify=False, allow_redirects=False, timeout=20)
 
     print("\033[34m⟙\033[0m")
     print(f" URL: {url}")
@@ -146,12 +172,14 @@ def process_modules(url, s, custom_headers, keyword):
         for kp in KNOWN_PATHS:
             print(f"    └─ {kp}")
 
+    if post_data is not None:
+        print(f" Method: POST")
     print("\n\033[36m ├ WCD Check\033[0m")
-    wcd_base(url, s, custom_headers, keyword, human)
+    wcd_base(url, s, custom_headers, keyword, human, post_data)
     print("\n======= Scan finish =======\n")
 
 
-def process_crawl_mode(base_url, s, custom_headers, keyword, max_pages):
+def process_crawl_mode(base_url, s, custom_headers, keyword, max_pages, post_data=None):
     """
     Auto-crawl mode:
       1. Crawl the target site to discover all pages (BFS, same domain).
@@ -201,7 +229,7 @@ def process_crawl_mode(base_url, s, custom_headers, keyword, max_pages):
 
         print(f"\033[36m ├ WCD Check\033[0m — {page_url}")
         try:
-            wcd_base(base_url, s, custom_headers, keyword, human)
+            wcd_base(base_url, s, custom_headers, keyword, human, post_data)
         except KeyboardInterrupt:
             print("\nScan interrupted by user.")
             sys.exit()
@@ -225,6 +253,7 @@ if __name__ == '__main__':
     max_pages = results.max_pages
     human = results.human
     ua_force = results.ua_force
+    post_data = parse_post_data(results.post_data)
 
     modules.utils.DEFAULT_UA = ua_force
 
@@ -250,7 +279,7 @@ if __name__ == '__main__':
             print("\033[31m[!] -c/--crawl requires -u/--url\033[0m")
             sys.exit(1)
         try:
-            process_crawl_mode(url, s, custom_headers, keyword, max_pages)
+            process_crawl_mode(url, s, custom_headers, keyword, max_pages, post_data)
         except KeyboardInterrupt:
             print("\nExiting")
             sys.exit()
@@ -262,7 +291,7 @@ if __name__ == '__main__':
         # Standard single-URL mode (unchanged)
         parsed_url = urlparse(url)
         try:
-            process_modules(url, s, custom_headers, keyword)
+            process_modules(url, s, custom_headers, keyword, post_data)
         except KeyboardInterrupt:
             print("Exiting")
             sys.exit()
@@ -276,7 +305,7 @@ if __name__ == '__main__':
             urls = [line.strip() for line in f if line.strip()]
         for url in urls:
             try:
-                process_modules(url, s, custom_headers, keyword)
+                process_modules(url, s, custom_headers, keyword, post_data)
                 print(f" {url}", end='\r')
             except KeyboardInterrupt:
                 print("Exiting")

@@ -29,11 +29,14 @@ def waf_verify(req_verify, s, url, upe):
             BLOCK_COUNT += 1
 
 
-def wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human):
+def wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human, post_data=None):
     try:
         for _ in range(3):
             s.headers.update(random_ua())
-            req_ext = s.get(upe, verify=False, allow_redirects=False, timeout=10, stream=False)
+            if post_data is not None:
+                req_ext = s.post(upe, verify=False, allow_redirects=False, timeout=10, stream=False, **post_data)
+            else:
+                req_ext = s.get(upe, verify=False, allow_redirects=False, timeout=10, stream=False)
             human_time(human)
         cache_status = check_cache_presence(req_ext)
         headers = random_ua()
@@ -83,7 +86,7 @@ def wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, h
         pass
 
 
-def path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword, human):
+def path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword, human, post_data=None):
     try:
         url_p = f"{url}{kp}"
         url_ptc = [
@@ -104,7 +107,7 @@ def path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, key
                 f"{url}/../{kp}/../hidden",
             ]
         for ptc in url_ptc:
-            wcd_check(s, url, url_p, ptc, req_path, req_base, custom_headers, keyword, human)
+            wcd_check(s, url, url_p, ptc, req_path, req_base, custom_headers, keyword, human, post_data)
             print(f" {ptc}", end='\r')
     except requests.ConnectionError:
         print(f"Error: cannot connect to target {url}")
@@ -117,7 +120,7 @@ def path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, key
         pass
 
 
-def tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human):
+def tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human, post_data=None):
     try:
         url_tp = [
             f"{url_p}?utm_source=abc",
@@ -155,7 +158,7 @@ def tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, h
             f"{url_p}?download=tempfile",
         ]
         for ut in url_tp:
-            wcd_check(s, url, url_p, ut, req_path, req_base, custom_headers, keyword, human)
+            wcd_check(s, url, url_p, ut, req_path, req_base, custom_headers, keyword, human, post_data)
             print(f" {ut}", end='\r')
     except requests.ConnectionError:
         print(f"Error, cannot connect to target {url}")
@@ -169,7 +172,7 @@ def tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, h
  
         
 
-def wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human):
+def wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human, post_data=None):
     try:
         for e in extensions:
             url_p_e = [
@@ -183,12 +186,12 @@ def wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, h
                 f"{url_p}?a={e}&a=1",
             ]
             for upe in url_p_e:
-                wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human)
+                wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human, post_data)
                 print(f" {upe}", end='\r')
             for d in delimiters:
                 buster = ''.join(random.choices(string.ascii_letters, k=random.randint(8, 10)))
                 upe = f"{url_p}{d}{buster}{e}" #Ex: toto.com/profile;dzede.css
-                wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human)
+                wcd_check(s, url, url_p, upe, req_path, req_base, custom_headers, keyword, human, post_data)
                 print(f" {upe}", end='\r')
     except requests.ConnectionError:
         print(f"Error; cannot connect to target {url}")
@@ -201,37 +204,45 @@ def wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, h
         pass
 
 
-def wcd_base(url, s, custom_headers, keyword, human):
+def wcd_base(url, s, custom_headers, keyword, human, post_data=None):
     try:
-        req_base = s.get(url, verify=False, allow_redirects=False, timeout=10)
+        if post_data is not None:
+            req_base = s.post(url, verify=False, allow_redirects=False, timeout=10, **post_data)
+        else:
+            req_base = s.get(url, verify=False, allow_redirects=False, timeout=10)
         if KNOWN_PATHS:
             for kp in KNOWN_PATHS:
                 kp = kp if kp[0] != "/" else kp[1:]
                 url_p = f"{url}{kp}"
-                req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
-                #print(req_path)
+                if post_data is not None:
+                    req_path = s.post(url_p, verify=False, allow_redirects=False, timeout=10, **post_data)
+                else:
+                    req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
                 if req_path.status_code not in [410, 404, 308]:
                     if req_path.status_code == 429:
                         print("[I] 429 You appear to have been blocked by a WAF.")
                     if req_path.status_code == 403 and req_base.status_code == 403:
                         pass
                     else:
-                        path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword, human)
-                        tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
-                        wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
+                        path_traversal_confusion(s, url, kp, req_base, req_path, custom_headers, keyword, human, post_data)
+                        tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human, post_data)
+                        wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human, post_data)
         else:
             for dp in DEFAULT_PATHS:
                 url_p = f"{url}{dp}"
-                req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
+                if post_data is not None:
+                    req_path = s.post(url_p, verify=False, allow_redirects=False, timeout=10, **post_data)
+                else:
+                    req_path = s.get(url_p, verify=False, allow_redirects=False, timeout=10)
                 if req_path.status_code not in [410, 404, 308]:
                     if req_path.status_code == 429:
                         print("[I] 429 You appear to have been blocked by a WAF.")
                     if req_path.status_code == 403 and req_base.status_code == 403:
                         pass
                     else:
-                        path_traversal_confusion(s, url, dp, req_base, req_path, custom_headers, keyword, human)
-                        tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
-                        wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human)
+                        path_traversal_confusion(s, url, dp, req_base, req_path, custom_headers, keyword, human, post_data)
+                        tracking_param(s, url, url_p, req_base, req_path, custom_headers, keyword, human, post_data)
+                        wcd_formatting(s, url, url_p, req_base, req_path, custom_headers, keyword, human, post_data)
     except Exception as e:
         traceback.print_exc()
         print(f"Error (wcd.py) : {e}")
